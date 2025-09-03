@@ -19,7 +19,6 @@ import { BASE_URL } from "./constant";
 import ReactModal from "./components/ReactModal";
 import { useForm } from "react-hook-form";
 import { FaHandPointRight } from "react-icons/fa";
-import ReloadPrompt from "../reloadprompt";
 
 function App() {
   const dispatch = useDispatch();
@@ -211,7 +210,6 @@ function App() {
       <div className="text-center font-semibold lg:mb-10 mb-4 text-lg text-white [background:linear-gradient(103.45deg,_rgb(97,65,25)_-11.68%,_rgb(205,154,80)_48.54%,_rgb(97,65,25)_108.76%)] shadow-2xl py-2 ">
         BARCODE SCANNER APP
       </div>
-      <ReloadPrompt />
       <div className="flex items-center justify-center lg:my-5 mt-8 mb-4  ">
         <Boxdetails setOpen={setOpen} />
       </div>
