@@ -5,25 +5,33 @@ import Boxdetails from "./components/Boxdetails";
 import { useEffect, useRef, useState } from "react";
 import { LiaBarcodeSolid } from "react-icons/lia";
 import { useDispatch, useSelector } from "react-redux";
-import { setBoxData, setBranchCode, setPicklistNo, setProducts, setScannedProducts } from "./reduxstore/slice";
+import {
+  setBoxData,
+  setBranchCode,
+  setPicklistNo,
+  setProducts,
+  setScannedProducts,
+} from "./reduxstore/slice";
 import db from "./utils/db";
 import toast from "react-hot-toast";
-import axios from 'axios'
+import axios from "axios";
 import { BASE_URL } from "./constant";
 import ReactModal from "./components/ReactModal";
-import { useForm } from 'react-hook-form';
+import { useForm } from "react-hook-form";
 import { FaHandPointRight } from "react-icons/fa";
-
+import ReloadPrompt from "../reloadprompt";
 
 function App() {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
   const productData = useSelector((state) => state?.product?.products);
-  const scannedProducts = useSelector((state) => state?.product?.scannedProducts);
+  const scannedProducts = useSelector(
+    (state) => state?.product?.scannedProducts
+  );
   const deferredPromptRef = useRef(null);
-  const [open, setOpen] = useState(true)
-  const [isloading, setIsLoading] = useState(false)
-  const [detailsLoading, setDetailsLoading] = useState(false)
-  const [lineItem, setLineItem] = useState(0)
+  const [open, setOpen] = useState(true);
+  const [isloading, setIsLoading] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [lineItem, setLineItem] = useState(0);
 
   const payload = useSelector((state) => state?.product);
 
@@ -38,19 +46,18 @@ function App() {
   }
 
   const onSubmit = async (data) => {
-    setIsLoading(true)
+    setIsLoading(true);
 
-    dispatch(setPicklistNo(data?.picklistno))
-    dispatch(setBranchCode(data?.branchcode))
+    dispatch(setPicklistNo(data?.picklistno));
+    dispatch(setBranchCode(data?.branchcode));
 
     try {
       const response = await axios.post(`${BASE_URL}/Getpicklistsummary`, {
         branchcode: data?.branchcode,
-        picklistno: data?.picklistno
-      })
-      const result = await response?.data
+        picklistno: data?.picklistno,
+      });
+      const result = await response?.data;
       if (response?.status == 200) {
-
         const grouped = Object.values(
           result.reduce((acc, item) => {
             if (!acc[item.box_no]) {
@@ -64,66 +71,66 @@ function App() {
           }, {})
         );
 
-        dispatch(setBoxData(grouped))
+        dispatch(setBoxData(grouped));
 
         if (result?.length > 1) {
           const lineItem = result?.reduce((acc, curr) => {
             return acc + (curr?.barcode_count || 0);
           }, 0);
-          setLineItem(lineItem)
+          setLineItem(lineItem);
         } else if (result?.length > 0 && result?.length == 1) {
-          setLineItem(1)
+          setLineItem(1);
         } else {
-          setLineItem(0)
+          setLineItem(0);
         }
 
         if (result?.length > 0) {
-          toast.success('Picklist Found !')
+          toast.success("Picklist Found !");
         } else {
-          toast.error('Picklist Not Found !')
+          toast.error("Picklist Not Found !");
         }
       }
     } catch (err) {
-      throw new Error(err)
+      throw new Error(err);
+    } finally {
+      setOpen(false);
+      setIsLoading(false);
     }
-    finally {
-      setOpen(false)
-      setIsLoading(false)
-    }
-  }
+  };
 
   const fetchTodayScannedData = async () => {
-    //db.scanned_products.clear();  
-    const today = new Date().toISOString().split('T')[0];
+    //db.scanned_products.clear();
+    const today = new Date().toISOString().split("T")[0];
     const scannedToday = await getScannedProductsByDate(today);
-    const filterPicklist = scannedToday?.filter((item) => item?.data?.picklistNo == payload?.picklistNo)
+    const filterPicklist = scannedToday?.filter(
+      (item) => item?.data?.picklistNo == payload?.picklistNo
+    );
     if (filterPicklist?.length > 0) {
-      filterPicklist.map((item) => dispatch(setScannedProducts(item?.data)))
+      filterPicklist.map((item) => dispatch(setScannedProducts(item?.data)));
     } else {
       toast.error(`No scanned products found!`);
     }
   };
 
   const handleViewClick = async () => {
-    setDetailsLoading(true)
+    setDetailsLoading(true);
     try {
       const response = await axios.post(`${BASE_URL}/Getpicklistdetails`, {
         branchcode: payload?.branchcode,
-        picklistno: payload?.picklistNo
-      })
-      const result = await response?.data
+        picklistno: payload?.picklistNo,
+      });
+      const result = await response?.data;
       if (response.status == 200 && result?.length > 0) {
-        dispatch(setProducts(result))
+        dispatch(setProducts(result));
       } else {
-        toast.error('Products Not Found !')
+        toast.error("Products Not Found !");
       }
     } catch (err) {
-      throw new Error(err)
+      throw new Error(err);
     } finally {
-      setDetailsLoading(false)
+      setDetailsLoading(false);
     }
   };
-
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -132,18 +139,22 @@ function App() {
       showInstallToast();
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt
+      );
     };
   }, []);
 
   const showInstallToast = () => {
     toast.custom((t) => (
       <div
-        className={`${t.visible ? 'animate-enter' : 'animate-leave'
-          } max-w-md w-full mx-2 bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
+        className={`${
+          t.visible ? "animate-enter" : "animate-leave"
+        } max-w-md w-full mx-2 bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
       >
         <div className="flex-1 w-0 ">
           <div className="flex items-start">
@@ -159,9 +170,7 @@ function App() {
                 For better user experience !
               </p>
               <p className="text-sm font-medium text-gray-900">
-                <button onClick={showInstallPrompt}>
-                  Install App
-                </button>
+                <button onClick={showInstallPrompt}>Install App</button>
               </p>
             </div>
           </div>
@@ -175,7 +184,7 @@ function App() {
           </button>
         </div>
       </div>
-    ))
+    ));
   };
 
   function showInstallPrompt() {
@@ -183,29 +192,37 @@ function App() {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the install prompt');
+        if (choiceResult.outcome === "accepted") {
+          console.log("User accepted the install prompt");
         } else {
-          console.log('User dismissed the install prompt');
+          console.log("User dismissed the install prompt");
         }
         deferredPromptRef.current = null;
       });
     }
   }
 
-  const picklistScanned = scannedProducts?.filter((item) => item?.picklistNo == payload?.picklistNo)
-
+  const picklistScanned = scannedProducts?.filter(
+    (item) => item?.picklistNo == payload?.picklistNo
+  );
 
   return (
     <div className="">
-      <div className="text-center font-semibold lg:mb-10 mb-4 text-lg text-white [background:linear-gradient(103.45deg,_rgb(97,65,25)_-11.68%,_rgb(205,154,80)_48.54%,_rgb(97,65,25)_108.76%)] shadow-2xl py-2 ">BARCODE SCANNER</div>
+      <div className="text-center font-semibold lg:mb-10 mb-4 text-lg text-white [background:linear-gradient(103.45deg,_rgb(97,65,25)_-11.68%,_rgb(205,154,80)_48.54%,_rgb(97,65,25)_108.76%)] shadow-2xl py-2 ">
+        BARCODE SCANNER APP
+      </div>
+      <ReloadPrompt />
       <div className="flex items-center justify-center lg:my-5 mt-8 mb-4  ">
         <Boxdetails setOpen={setOpen} />
       </div>
       <div className="flex justify-between items-center mb-4">
-        <p className="text-[#614119] font-semibold">Total Line Items:&nbsp;{lineItem} </p>
-        <div className="flex items-center gap-2 cursor-pointer" >
-          <p className="text-[#614119] font-semibold lg:flex hidden items-center ">Click here &nbsp; <FaHandPointRight /></p>
+        <p className="text-[#614119] font-semibold">
+          Total Line Items:&nbsp;{lineItem}{" "}
+        </p>
+        <div className="flex items-center gap-2 cursor-pointer">
+          <p className="text-[#614119] font-semibold lg:flex hidden items-center ">
+            Click here &nbsp; <FaHandPointRight />
+          </p>
           <button
             onClick={() => handleViewClick()}
             className="bg-[#cd9a50] text-white  cursor-pointer  px-2 text-sm font-bold py-2 rounded "
@@ -215,21 +232,28 @@ function App() {
         </div>
       </div>
 
-      {productData?.length > 0 ?
-        <div className="text-center font-semibold lg:mb-10 mb-4 text-SM text-white [background:linear-gradient(103.45deg,_rgb(97,65,25)_-11.68%,_rgb(205,154,80)_48.54%,_rgb(97,65,25)_108.76%)] shadow-2xl ">LINE ITEMS LIST</div>
-        : <hr className="text-[#614119]" />}
+      {productData?.length > 0 ? (
+        <div className="text-center font-semibold lg:mb-10 mb-4 text-SM text-white [background:linear-gradient(103.45deg,_rgb(97,65,25)_-11.68%,_rgb(205,154,80)_48.54%,_rgb(97,65,25)_108.76%)] shadow-2xl ">
+          LINE ITEMS LIST
+        </div>
+      ) : (
+        <hr className="text-[#614119]" />
+      )}
 
-      {
-        productData?.length > 0 &&
+      {productData?.length > 0 && (
         <>
-          <div className=" flex my-3" >
+          <div className=" flex my-3">
             <div className="w-full">
-
               <div className="flex justify-between items-center w-full">
                 <label className="text-[#614119] font-semibold">
                   Search | Scan Barcode
                 </label>
-                <p className="underline text-[#614119] text-sm font-semibold cursor-pointer" onClick={() => fetchTodayScannedData()} >Previous Scanned</p>
+                <p
+                  className="underline text-[#614119] text-sm font-semibold cursor-pointer"
+                  onClick={() => fetchTodayScannedData()}
+                >
+                  Previous Scanned
+                </p>
               </div>
               <div className="flex items-center gap-2 py-2 pl-1 border border-[#cd9a50]  rounded cursor-pointer">
                 <LiaBarcodeSolid color="#cd9a50" />
@@ -239,8 +263,12 @@ function App() {
           </div>
 
           <div className="flex flex-row gap-x-2 text-[#614119]">
-            <p className="font-bold">Total:&nbsp;{productData?.length}</p>{'|'}
-            <p className="font-bold">Pending:&nbsp;{productData?.length - picklistScanned?.length}</p>{'|'}
+            <p className="font-bold">Total:&nbsp;{productData?.length}</p>
+            {"|"}
+            <p className="font-bold">
+              Pending:&nbsp;{productData?.length - picklistScanned?.length}
+            </p>
+            {"|"}
             <p className="font-bold">Picked:&nbsp;{picklistScanned?.length}</p>
           </div>
 
@@ -248,12 +276,10 @@ function App() {
             <AgGridTable />
           </div>
         </>
-      }
+      )}
 
-      <ReactModal modalIsOpen={open} closeModal={closeModal} >
-        <form
-          className="grid gap-y-5"
-          onSubmit={handleSubmit(onSubmit)}>
+      <ReactModal modalIsOpen={open} closeModal={closeModal}>
+        <form className="grid gap-y-5" onSubmit={handleSubmit(onSubmit)}>
           <div className="w-full">
             <p className="text-[#614119] font-semibold">Enter Branch Code.</p>
             <div className="w-full grid gap-y-1">
@@ -261,14 +287,17 @@ function App() {
                 id="branchcode"
                 type="text"
                 placeholder="Branch Code"
-                className={`outline-none border text-[#614119] ${errors?.branchcode ? 'border-red-500' : 'border-[#cd9a50]'
-                  }  p-2 rounded-sm `}
-                {...register('branchcode', {
-                  required: 'Branch Code is required',
+                className={`outline-none border text-[#614119] ${
+                  errors?.branchcode ? "border-red-500" : "border-[#cd9a50]"
+                }  p-2 rounded-sm `}
+                {...register("branchcode", {
+                  required: "Branch Code is required",
                 })}
               />
               {errors?.branchcode && (
-                <p className="text-red-500 text-sm">{errors?.branchcode?.message}</p>
+                <p className="text-red-500 text-sm">
+                  {errors?.branchcode?.message}
+                </p>
               )}
             </div>
           </div>
@@ -279,29 +308,36 @@ function App() {
                 id="picklistno"
                 type="text"
                 placeholder="Picklist No."
-                className={`outline-none text-[#614119] border ${errors?.picklistno ? 'border-red-500' : 'border-[#cd9a50]'
-                  } p-2 rounded-sm`}
-                {...register('picklistno', {
-                  required: 'Picklist No is required',
+                className={`outline-none text-[#614119] border ${
+                  errors?.picklistno ? "border-red-500" : "border-[#cd9a50]"
+                } p-2 rounded-sm`}
+                {...register("picklistno", {
+                  required: "Picklist No is required",
                   pattern: {
                     value: /^[0-9]{6}$/,
-                    message: 'Picklist no. must be 6 digits',
+                    message: "Picklist no. must be 6 digits",
                   },
                 })}
               />
               {errors?.picklistno && (
-                <p className="text-red-500 text-sm">{errors?.picklistno?.message}</p>
+                <p className="text-red-500 text-sm">
+                  {errors?.picklistno?.message}
+                </p>
               )}
             </div>
           </div>
           <div className="w-full">
-            <button type="submit" className={`px-3 py-2 [background:linear-gradient(103.45deg,_rgb(97,65,25)_-11.68%,_rgb(205,154,80)_48.54%,_rgb(97,65,25)_108.76%)] text-amber-50 rounded-sm cursor-pointer `}>{isloading ? 'Loading...' : 'Get Picklist Details'}</button>
+            <button
+              type="submit"
+              className={`px-3 py-2 [background:linear-gradient(103.45deg,_rgb(97,65,25)_-11.68%,_rgb(205,154,80)_48.54%,_rgb(97,65,25)_108.76%)] text-amber-50 rounded-sm cursor-pointer `}
+            >
+              {isloading ? "Loading..." : "Get Picklist Details"}
+            </button>
           </div>
         </form>
-
       </ReactModal>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
